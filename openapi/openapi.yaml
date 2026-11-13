@@ -1,0 +1,54 @@
+openapi: 3.0.3
+info:
+  title: Memo JoJo API
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+
+paths:
+  /memos/{id}:
+    get:
+      summary: 取得單筆 memo
+      operationId: getMemo
+      tags: [memos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Memo"
+        "404":
+          description: 找不到
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  schemas:
+    Memo:
+      type: object
+      required: [id, title, content, createdAt, updatedAt]
+      properties:
+        id:        { type: integer, example: 1 }
+        title:     { type: string, maxLength: 100 }
+        content:   { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:    { type: string, example: NOT_FOUND }
+            message: { type: string }
