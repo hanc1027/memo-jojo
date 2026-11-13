@@ -50,10 +50,42 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+    post:
+      summary: 新增 memo
+      operationId: createMemo
+      tags: [memos]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, content]
+              properties:
+                title:   { type: string, maxLength: 100 }
+                content: { type: string }
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "404":
+          description: 找不到
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
 
 components:
   schemas:
+    Success:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean, example: true }
     Memo:
       type: object
       required: [id, title, content, createdAt, updatedAt]
