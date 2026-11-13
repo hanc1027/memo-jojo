@@ -53,6 +53,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+    patch:
+      summary: 更新單筆 memo
+      operationId: updateMemo
+      tags: [memos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:   { type: string, maxLength: 100 }
+                content: { type: string }
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "404":
+          description: 找不到
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   
   /memos:
     get:
