@@ -84,7 +84,35 @@ export interface components {
             };
         };
     };
-    responses: never;
+    responses: {
+        /** @description 輸入資料有誤 */
+        BadRequest: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description 找不到資源 */
+        NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description 伺服器內部錯誤 */
+        InternalError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+    };
     parameters: never;
     requestBodies: never;
     headers: never;
@@ -112,15 +140,7 @@ export interface operations {
                     "application/json": components["schemas"]["Memo"];
                 };
             };
-            /** @description 找不到 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
+            404: components["responses"]["NotFound"];
         };
     };
     deleteMemo: {
@@ -143,15 +163,7 @@ export interface operations {
                     "application/json": components["schemas"]["Success"];
                 };
             };
-            /** @description 找不到 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
+            404: components["responses"]["NotFound"];
         };
     };
     updateMemo: {
@@ -181,15 +193,7 @@ export interface operations {
                     "application/json": components["schemas"]["Success"];
                 };
             };
-            /** @description 找不到 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
+            404: components["responses"]["NotFound"];
         };
     };
     getMemos: {
@@ -210,15 +214,7 @@ export interface operations {
                     "application/json": components["schemas"]["Memo"][];
                 };
             };
-            /** @description 找不到 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
+            404: components["responses"]["NotFound"];
         };
     };
     createMemo: {
@@ -246,15 +242,7 @@ export interface operations {
                     "application/json": components["schemas"]["Success"];
                 };
             };
-            /** @description 找不到 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
+            404: components["responses"]["NotFound"];
         };
     };
     healthCheck: {

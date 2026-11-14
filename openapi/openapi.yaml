@@ -27,11 +27,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Memo"
         "404":
-          description: 找不到
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/NotFound"
     delete:
       summary: 刪除單筆 memo
       operationId: deleteMemo
@@ -50,11 +46,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Success"
         "404":
-          description: 找不到
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/NotFound"
     patch:
       summary: 更新單筆 memo
       operationId: updateMemo
@@ -82,11 +74,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Success"
         "404":
-          description: 找不到
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/NotFound"
   
   /memos:
     get:
@@ -103,11 +91,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/Memo"
         "404":
-          description: 找不到
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/NotFound"
     post:
       summary: 新增 memo
       operationId: createMemo
@@ -130,11 +114,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Success"
         "404":
-          description: 找不到
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/NotFound"
   /health:
     get:
       summary: 健康檢查
@@ -149,6 +129,25 @@ paths:
                 $ref: "#/components/schemas/Success"
 
 components:
+  responses:
+    BadRequest:
+      description: 輸入資料有誤
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: 找不到資源
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    InternalError:
+      description: 伺服器內部錯誤
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
   schemas:
     Success:
       type: object
