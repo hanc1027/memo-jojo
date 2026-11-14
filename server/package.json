@@ -10,7 +10,7 @@
     "build": "pnpm run gen:types && tsc",
     "typecheck": "tsc --noEmit",
     "gen:types": "openapi-typescript ../openapi/openapi.yaml -o src/types/api.ts",
-    "lint:api": "pnpm dlx @redocly/cli lint ../openapi/openapi.yaml"
+    "lint:api": "redocly lint ../openapi/openapi.yaml"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +26,7 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@redocly/cli": "^2.78.0",
     "@types/express": "^5.0.6",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^26.6.6",
