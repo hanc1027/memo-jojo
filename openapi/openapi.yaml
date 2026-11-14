@@ -133,6 +133,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /health:
+    get:
+      summary: 健康檢查
+      operationId: healthCheck
+      tags: [system]
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
 
 components:
   schemas:
