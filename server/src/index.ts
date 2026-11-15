@@ -1,8 +1,9 @@
 import express, { type ErrorRequestHandler } from "express";
-import swaggerUi from "swagger-ui-express";
+import * as OpenApiValidator from "express-openapi-validator";
 import { load } from "js-yaml";
 import { readFileSync } from "node:fs";
-import * as OpenApiValidator from "express-openapi-validator";
+import swaggerUi from "swagger-ui-express";
+import { pool } from "./db/pool.ts";
 
 
 const specPath = "../openapi/openapi.yaml";
@@ -47,11 +48,26 @@ const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
 };
 app.use(errorHandler);
 
-function codeFromStatus(status: number): string {
+const codeFromStatus = (status: number) => {
   if (status === 400) return "VALIDATION_ERROR";
   if (status === 404) return "NOT_FOUND";
   return "BAD_REQUEST";
 }
+
+const dbConnection = async () => {
+  await pool.query("SELECT NOW(), UTC_TIMESTAMP();")
+}
+
+dbConnection().then(() => {
+  console.log("Database connected.");
+}).catch((err) => {
+  if (err instanceof Error) {
+    console.error("Database connection test failed:", err.message);
+  } else {
+    console.error("Database connection test failed:", err);
+  }
+  process.exit(1);
+});
 
 /**
  * 啟動Server
