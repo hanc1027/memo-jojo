@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type ErrorRequestHandler } from "express";
 import swaggerUi from "swagger-ui-express";
 import { load } from "js-yaml";
 import { readFileSync } from "node:fs";
@@ -17,8 +17,6 @@ app.use(express.json());
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec)); 
 app.use(OpenApiValidator.middleware({
   apiSpec: specPath,
-  validateRequests: true, // 擋下不符合契約的請求
-  validateResponses: true, // 回應不符契約時會報錯，能抓到 handler 寫錯欄位。 開發時為 true
 }));
 
 /**
@@ -29,6 +27,35 @@ app.get("/health", (_req, res) => {
   res.json({ success: true });
 });
 
+/**
+ * 錯誤處理
+ */
+const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
+  const status = typeof err?.status === "number" ? err.status : 500;
+
+  if (status >= 500) {
+    console.error(err);
+    res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Internal Server Error" },
+    });
+    return;
+  }
+
+  res.status(status).json({
+    error: { code: codeFromStatus(status), message: err.message },
+  });
+};
+app.use(errorHandler);
+
+function codeFromStatus(status: number): string {
+  if (status === 400) return "VALIDATION_ERROR";
+  if (status === 404) return "NOT_FOUND";
+  return "BAD_REQUEST";
+}
+
+/**
+ * 啟動Server
+ */
 const port = Number(process.env.PORT ?? 3000);
 app.listen(port, () => {
   console.log(`server listening on ${port}`);
