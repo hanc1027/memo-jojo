@@ -16,3 +16,9 @@ docker compose up -d
 # 目前先手動執行，之後再納入Docker一並啟動
 cd server && pnpm i && pnpm dev
 ```
+
+## 執行前端Server
+```shell
+# 目前先手動執行，之後再納入Docker一並啟動
+cd client && pnpm i && pnpm dev
+```
