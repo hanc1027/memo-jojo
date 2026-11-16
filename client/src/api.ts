@@ -12,6 +12,18 @@ export interface CreateMemoInput {
   content: string;
 }
 
+export async function getMemos(): Promise<Memo[]> {
+  const response = await fetch('/memos');
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error?.message ?? '取得 Memo 清單失敗');
+  }
+
+  return data as Memo[];
+}
+
 export async function createMemo(
   input: CreateMemoInput,
 ): Promise<Memo> {

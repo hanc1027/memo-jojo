@@ -1,7 +1,7 @@
 
-import { useState, type ComponentProps } from 'react';
-import { createMemo } from './api';
-import type { CreateMemoInput } from './api';
+import { useEffect, useState, type ComponentProps } from 'react';
+import { createMemo, getMemos } from './api';
+import type { CreateMemoInput, Memo } from './api';
 
 type FormSubmitHandler = NonNullable<
   ComponentProps<'form'>['onSubmit']
@@ -10,10 +10,50 @@ type FormSubmitHandler = NonNullable<
 function App() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+
+  const [memos, setMemos] = useState<Memo[]>([]);
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // 初次載入 Memo 清單
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMemos = async () => {
+      try {
+        const data = await getMemos();
+
+        if (!cancelled) {
+          setMemos(data);
+          setListError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setListError(
+            err instanceof Error
+              ? err.message
+              : '取得 Memo 清單失敗',
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setListLoading(false);
+        }
+      }
+    };
+
+    void loadMemos();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 新增 Memo
   const handleSubmit: FormSubmitHandler = async (event) => {
     event.preventDefault();
 
@@ -29,7 +69,8 @@ function App() {
 
       const memo = await createMemo(input);
 
-      console.log('Created Memo:', memo);
+      // 後端清單依 id DESC 排序，因此新資料放最前面 (直接更新前端狀態，避免多call 一次api)
+      setMemos((prev) => [memo, ...prev]);
 
       setTitle('');
       setContent('');
@@ -45,13 +86,13 @@ function App() {
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-12">
-      <div className="mx-auto w-full max-w-xl">
-        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              新增 Memo
-            </h1>
-          </div>
+      <div className="mx-auto w-full max-w-2xl space-y-8">
+
+        {/* 新增 Memo */}
+        <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
+          <h1 className="mb-6 text-2xl font-bold text-slate-900">
+            Memo App
+          </h1>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -70,7 +111,7 @@ function App() {
                 onChange={(event) => setTitle(event.target.value)}
                 maxLength={100}
                 required
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               />
             </div>
 
@@ -84,29 +125,23 @@ function App() {
 
               <textarea
                 id="content"
-                rows={5}
+                rows={4}
                 placeholder="請輸入 Memo 內容"
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
                 required
-                className="w-full resize-y rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                className="w-full resize-y rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               />
             </div>
 
             {error && (
-              <div
-                role="alert"
-                className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-              >
+              <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
                 {error}
               </div>
             )}
 
             {success && (
-              <div
-                role="status"
-                className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
-              >
+              <div role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
                 Memo 新增成功！
               </div>
             )}
@@ -114,12 +149,66 @@ function App() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? '新增中...' : '新增 Memo'}
             </button>
           </form>
-        </div>
+        </section>
+
+        {/* Memo 清單 */}
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-900">
+              Memo 清單
+            </h2>
+
+            <span className="text-sm text-slate-500">
+              共 {memos.length} 筆
+            </span>
+          </div>
+
+          {listLoading && (
+            <p className="py-8 text-center text-sm text-slate-500">
+              載入中...
+            </p>
+          )}
+
+          {listError && (
+            <div role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+              {listError}
+            </div>
+          )}
+
+          {!listLoading && !listError && memos.length === 0 && (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
+              <p className="text-sm text-slate-500">
+                目前還沒有 Memo，新增第一筆吧！
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {memos.map((memo) => (
+              <article
+                key={memo.id}
+                className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+              >
+                <h3 className="font-semibold text-slate-900">
+                  {memo.title}
+                </h3>
+
+                <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">
+                  {memo.content}
+                </p>
+
+                <p className="mt-4 text-xs text-slate-400">
+                  建立時間：{new Date(memo.createdAt).toLocaleString()}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
       </div>
     </main>
   );
