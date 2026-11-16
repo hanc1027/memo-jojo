@@ -4,6 +4,7 @@ import {
   createMemo,
   getMemos,
   updateMemo,
+  deleteMemo,
   type CreateMemoInput,
   type Memo,
 } from './api';
@@ -31,6 +32,13 @@ function App() {
   const [editContent, setEditContent] = useState('');
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+
+  // Delete Memo State
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<{
+    id: number;
+    message: string;
+  } | null>(null);
 
   // 取得 Memo List
   useEffect(() => {
@@ -140,6 +148,32 @@ function App() {
     }
   };
 
+  // 刪除 Memo
+  const handleDelete = async (id: number) => {
+    const confirmed = window.confirm('確定要刪除這筆 Memo 嗎？');
+
+    if (!confirmed) return;
+
+    setDeletingId(id);
+    setDeleteError(null);
+
+    try {
+      await deleteMemo(id);
+
+      setMemos((prev) => prev.filter((memo) => memo.id !== id));
+    } catch (err) {
+      setDeleteError({
+        id,
+        message:
+          err instanceof Error ? err.message : '刪除 Memo 失敗',
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const isOperating = updateLoading || deletingId !== null;
+
   return (
     <main className="min-h-screen bg-gray-100 px-4 py-10">
       <div className="mx-auto max-w-2xl space-y-8">
@@ -185,7 +219,7 @@ function App() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || isOperating}
               className="rounded-lg bg-blue-600 px-5 py-2.5 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? '新增中...' : '新增 Memo'}
@@ -252,7 +286,7 @@ function App() {
                     <div className="flex gap-2">
                       <button
                         type="submit"
-                        disabled={updateLoading}
+                        disabled={isOperating}
                         className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
                       >
                         {updateLoading ? '儲存中...' : '儲存'}
@@ -261,7 +295,7 @@ function App() {
                       <button
                         type="button"
                         onClick={handleCancelEdit}
-                        disabled={updateLoading}
+                        disabled={isOperating}
                         className="rounded-lg bg-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-300 disabled:opacity-50"
                       >
                         取消
@@ -280,17 +314,33 @@ function App() {
                     </p>
 
                     <p className="mt-3 text-xs text-gray-400">
-                      建立時間：{new Date(memo.createdAt).toLocaleString()}
+                      建立時間：
+                      {new Date(memo.createdAt).toLocaleString()}
                     </p>
+
+                    {deleteError?.id === memo.id && (
+                      <p className="mt-2 text-sm text-red-600">
+                        {deleteError.message}
+                      </p>
+                    )}
 
                     <div className="mt-4 flex gap-2">
                       <button
                         type="button"
                         onClick={() => handleEdit(memo)}
-                        disabled={updateLoading}
+                        disabled={isOperating}
                         className="rounded-lg bg-blue-100 px-4 py-2 text-sm text-blue-700 hover:bg-blue-200 disabled:opacity-50"
                       >
                         編輯
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(memo.id)}
+                        disabled={isOperating}
+                        className="rounded-lg bg-red-100 px-4 py-2 text-sm text-red-700 hover:bg-red-200 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {deletingId === memo.id ? '刪除中...' : '刪除'}
                       </button>
                     </div>
                   </>

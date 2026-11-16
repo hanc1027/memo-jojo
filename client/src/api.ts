@@ -71,3 +71,17 @@ export async function updateMemo(
 
   return data as Memo;
 }
+
+
+// 刪除 memo
+export async function deleteMemo(id: number): Promise<void> {
+  const response = await fetch(`/memos/${id}`, {
+    method: 'DELETE',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error?.message ?? '刪除 Memo 失敗');
+  }
+}
