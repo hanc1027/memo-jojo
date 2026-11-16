@@ -7,6 +7,7 @@ import { pool } from "./db/pool.ts";
 import { createMemo } from "./memos/create.ts";
 import { listMemos } from "./memos/list.ts";
 import { getMemo } from "./memos/get.ts";
+import { updateMemo } from "./memos/update.ts";
 
 
 const specPath = "../openapi/openapi.yaml";
@@ -64,6 +65,13 @@ app.get("/memos/:id", async (req, res) => {
   res.json(memo);
 });
 
+/**
+ * 更新指定memo
+ */
+app.patch("/memos/:id", async (req, res) => {
+  const memo = await updateMemo(Number(req.params.id), req.body);
+  res.json(memo);
+});
 
 // 各功能API路由 - End
 
