@@ -6,6 +6,7 @@ import swaggerUi from "swagger-ui-express";
 import { pool } from "./db/pool.ts";
 import { createMemo } from "./memos/create.ts";
 import { listMemos } from "./memos/list.ts";
+import { getMemo } from "./memos/get.ts";
 
 
 const specPath = "../openapi/openapi.yaml";
@@ -54,6 +55,15 @@ app.get("/memos", async (_req, res) => {
   const memos = await listMemos();
   res.json(memos);
 });
+
+/**
+ * 列出指定memo
+ */
+app.get("/memos/:id", async (req, res) => {
+  const memo = await getMemo(Number(req.params.id));
+  res.json(memo);
+});
+
 
 // 各功能API路由 - End
 
