@@ -18,7 +18,7 @@ export interface UpdateMemoInput {
 
 // 取得全部的 memos
 export async function getMemos(): Promise<Memo[]> {
-  const response = await fetch('/memos');
+  const response = await fetch('/api/memos');
 
   const data = await response.json();
 
@@ -33,7 +33,7 @@ export async function getMemos(): Promise<Memo[]> {
 export async function createMemo(
   input: CreateMemoInput,
 ): Promise<Memo> {
-  const response = await fetch('/memos', {
+  const response = await fetch('/api/memos', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ export async function updateMemo(
   id: number,
   input: UpdateMemoInput,
 ): Promise<Memo> {
-  const response = await fetch(`/memos/${id}`, {
+  const response = await fetch(`/api/memos/${id}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ export async function updateMemo(
 
 // 刪除 memo
 export async function deleteMemo(id: number): Promise<void> {
-  const response = await fetch(`/memos/${id}`, {
+  const response = await fetch(`/api/memos/${id}`, {
     method: 'DELETE',
   });
 

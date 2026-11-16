@@ -20,10 +20,7 @@ export default defineConfig({
       },
     },
   },
-
-  // 將前端輸出至 server/public 資料夾，docker build 時一並處理
   build: {
-    outDir: '../server/public',
-    emptyOutDir: true,
+    outDir: 'dist',
   },
 })
