@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import swaggerUi from "swagger-ui-express";
 import { pool } from "./db/pool.ts";
 import { createMemo } from "./memos/create.ts";
+import { listMemos } from "./memos/list.ts";
 
 
 const specPath = "../openapi/openapi.yaml";
@@ -36,6 +37,22 @@ app.get("/health", (_req, res) => {
 app.post("/memos", async (req, res) => {
   const memo = await createMemo(req.body);
   res.json(memo);
+});
+
+/**
+ * 新增memo
+ */
+app.post("/memos", async (req, res) => {
+  const memo = await createMemo(req.body);
+  res.json(memo);
+});
+
+/**
+ * 列出所有memo
+ */
+app.get("/memos", async (_req, res) => {
+  const memos = await listMemos();
+  res.json(memos);
 });
 
 // 各功能API路由 - End
