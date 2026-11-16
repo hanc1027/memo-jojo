@@ -8,6 +8,7 @@ import { createMemo } from "./memos/create.ts";
 import { listMemos } from "./memos/list.ts";
 import { getMemo } from "./memos/get.ts";
 import { updateMemo } from "./memos/update.ts";
+import { removeMemo } from "./memos/remove.ts";
 
 
 const specPath = "../openapi/openapi.yaml";
@@ -34,7 +35,7 @@ app.get("/health", (_req, res) => {
 
 // 各功能API路由 - Start
 /**
- * 新增memo
+ * 新增 memo
  */
 app.post("/memos", async (req, res) => {
   const memo = await createMemo(req.body);
@@ -42,15 +43,7 @@ app.post("/memos", async (req, res) => {
 });
 
 /**
- * 新增memo
- */
-app.post("/memos", async (req, res) => {
-  const memo = await createMemo(req.body);
-  res.json(memo);
-});
-
-/**
- * 列出所有memo
+ * 列出所有 memo
  */
 app.get("/memos", async (_req, res) => {
   const memos = await listMemos();
@@ -58,7 +51,7 @@ app.get("/memos", async (_req, res) => {
 });
 
 /**
- * 列出指定memo
+ * 列出指定 memo
  */
 app.get("/memos/:id", async (req, res) => {
   const memo = await getMemo(Number(req.params.id));
@@ -66,11 +59,19 @@ app.get("/memos/:id", async (req, res) => {
 });
 
 /**
- * 更新指定memo
+ * 更新指定 memo
  */
 app.patch("/memos/:id", async (req, res) => {
   const memo = await updateMemo(Number(req.params.id), req.body);
   res.json(memo);
+});
+
+/**
+ * 刪除指定 memo
+ */
+app.delete("/memos/:id", async (req, res) => {
+  await removeMemo(Number(req.params.id));
+  res.json({ success: true });
 });
 
 // 各功能API路由 - End
