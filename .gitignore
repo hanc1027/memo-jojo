@@ -27,3 +27,6 @@ mysql-data/
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# 由前端產生，置於server/public的檔案
+server/public
