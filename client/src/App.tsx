@@ -1,25 +1,38 @@
 
 import { useEffect, useState, type ComponentProps } from 'react';
-import { createMemo, getMemos } from './api';
-import type { CreateMemoInput, Memo } from './api';
+import {
+  createMemo,
+  getMemos,
+  updateMemo,
+  type CreateMemoInput,
+  type Memo,
+} from './api';
 
 type FormSubmitHandler = NonNullable<
   ComponentProps<'form'>['onSubmit']
 >;
 
 function App() {
+  // Create Memo State
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-
-  const [memos, setMemos] = useState<Memo[]>([]);
-  const [listLoading, setListLoading] = useState(true);
-  const [listError, setListError] = useState<string | null>(null);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // 初次載入 Memo 清單
+  // Memo List State
+  const [memos, setMemos] = useState<Memo[]>([]);
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+
+  // Update Memo State
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
+  // 取得 Memo List
   useEffect(() => {
     let cancelled = false;
 
@@ -34,9 +47,7 @@ function App() {
       } catch (err) {
         if (!cancelled) {
           setListError(
-            err instanceof Error
-              ? err.message
-              : '取得 Memo 清單失敗',
+            err instanceof Error ? err.message : '取得 Memo 清單失敗',
           );
         }
       } finally {
@@ -53,8 +64,8 @@ function App() {
     };
   }, []);
 
-  // 新增 Memo
-  const handleSubmit: FormSubmitHandler = async (event) => {
+  // Create Memo
+  const handleCreate: FormSubmitHandler = async (event) => {
     event.preventDefault();
 
     setLoading(true);
@@ -69,142 +80,221 @@ function App() {
 
       const memo = await createMemo(input);
 
-      // 後端清單依 id DESC 排序，因此新資料放最前面 (直接更新前端狀態，避免多call 一次api)
       setMemos((prev) => [memo, ...prev]);
-
       setTitle('');
       setContent('');
       setSuccess(true);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : '發生未知錯誤',
+        err instanceof Error ? err.message : '新增 Memo 失敗',
       );
     } finally {
       setLoading(false);
     }
   };
 
+  // 進入編輯模式
+  const handleEdit = (memo: Memo) => {
+    setEditingId(memo.id);
+    setEditTitle(memo.title);
+    setEditContent(memo.content);
+    setUpdateError(null);
+  };
+
+  // 取消編輯
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditTitle('');
+    setEditContent('');
+    setUpdateError(null);
+  };
+
+  // 更新 Memo
+  const handleUpdate: FormSubmitHandler = async (event) => {
+    event.preventDefault();
+
+    if (editingId === null) return;
+
+    setUpdateLoading(true);
+    setUpdateError(null);
+
+    try {
+      const updatedMemo = await updateMemo(editingId, {
+        title: editTitle,
+        content: editContent,
+      });
+
+      setMemos((prev) =>
+        prev.map((memo) =>
+          memo.id === updatedMemo.id ? updatedMemo : memo,
+        ),
+      );
+
+      handleCancelEdit();
+    } catch (err) {
+      setUpdateError(
+        err instanceof Error ? err.message : '更新 Memo 失敗',
+      );
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-12">
-      <div className="mx-auto w-full max-w-2xl space-y-8">
+    <main className="min-h-screen bg-gray-100 px-4 py-10">
+      <div className="mx-auto max-w-2xl space-y-8">
+        <h1 className="text-3xl font-bold text-gray-800">
+          Memo App
+        </h1>
 
-        {/* 新增 Memo */}
-        <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
-          <h1 className="mb-6 text-2xl font-bold text-slate-900">
-            Memo App
-          </h1>
+        {/* Create Memo */}
+        <section className="rounded-xl bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-xl font-semibold">
+            新增 Memo
+          </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label
-                htmlFor="title"
-                className="mb-2 block text-sm font-medium text-slate-700"
-              >
-                標題
-              </label>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <input
+              type="text"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="請輸入標題"
+              maxLength={100}
+              required
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+            />
 
-              <input
-                id="title"
-                type="text"
-                placeholder="請輸入 Memo 標題"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                maxLength={100}
-                required
-                className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="content"
-                className="mb-2 block text-sm font-medium text-slate-700"
-              >
-                內容
-              </label>
-
-              <textarea
-                id="content"
-                rows={4}
-                placeholder="請輸入 Memo 內容"
-                value={content}
-                onChange={(event) => setContent(event.target.value)}
-                required
-                className="w-full resize-y rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-              />
-            </div>
+            <textarea
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              placeholder="請輸入內容"
+              rows={4}
+              required
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+            />
 
             {error && (
-              <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-                {error}
-              </div>
+              <p className="text-sm text-red-600">{error}</p>
             )}
 
             {success && (
-              <div role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
+              <p className="text-sm text-green-600">
                 Memo 新增成功！
-              </div>
+              </p>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg bg-blue-600 px-5 py-2.5 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? '新增中...' : '新增 Memo'}
             </button>
           </form>
         </section>
 
-        {/* Memo 清單 */}
+        {/* Memo List */}
         <section>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-900">
-              Memo 清單
-            </h2>
-
-            <span className="text-sm text-slate-500">
-              共 {memos.length} 筆
-            </span>
-          </div>
+          <h2 className="mb-4 text-xl font-semibold text-gray-800">
+            Memo 清單
+          </h2>
 
           {listLoading && (
-            <p className="py-8 text-center text-sm text-slate-500">
-              載入中...
-            </p>
+            <p className="text-gray-500">載入中...</p>
           )}
 
           {listError && (
-            <div role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
-              {listError}
-            </div>
+            <p className="text-red-600">{listError}</p>
           )}
 
           {!listLoading && !listError && memos.length === 0 && (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-              <p className="text-sm text-slate-500">
-                目前還沒有 Memo，新增第一筆吧！
-              </p>
-            </div>
+            <p className="rounded-lg bg-white p-6 text-center text-gray-500">
+              目前沒有 Memo
+            </p>
           )}
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {memos.map((memo) => (
               <article
                 key={memo.id}
-                className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+                className="rounded-xl bg-white p-5 shadow-sm"
               >
-                <h3 className="font-semibold text-slate-900">
-                  {memo.title}
-                </h3>
+                {editingId === memo.id ? (
+                  /* Edit Mode */
+                  <form onSubmit={handleUpdate} className="space-y-4">
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(event) =>
+                        setEditTitle(event.target.value)
+                      }
+                      maxLength={100}
+                      required
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500"
+                    />
 
-                <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">
-                  {memo.content}
-                </p>
+                    <textarea
+                      value={editContent}
+                      onChange={(event) =>
+                        setEditContent(event.target.value)
+                      }
+                      rows={4}
+                      required
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-blue-500"
+                    />
 
-                <p className="mt-4 text-xs text-slate-400">
-                  建立時間：{new Date(memo.createdAt).toLocaleString()}
-                </p>
+                    {updateError && (
+                      <p className="text-sm text-red-600">
+                        {updateError}
+                      </p>
+                    )}
+
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        disabled={updateLoading}
+                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {updateLoading ? '儲存中...' : '儲存'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        disabled={updateLoading}
+                        className="rounded-lg bg-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-300 disabled:opacity-50"
+                      >
+                        取消
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  /* View Mode */
+                  <>
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      {memo.title}
+                    </h3>
+
+                    <p className="mt-2 whitespace-pre-wrap text-gray-600">
+                      {memo.content}
+                    </p>
+
+                    <p className="mt-3 text-xs text-gray-400">
+                      建立時間：{new Date(memo.createdAt).toLocaleString()}
+                    </p>
+
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(memo)}
+                        disabled={updateLoading}
+                        className="rounded-lg bg-blue-100 px-4 py-2 text-sm text-blue-700 hover:bg-blue-200 disabled:opacity-50"
+                      >
+                        編輯
+                      </button>
+                    </div>
+                  </>
+                )}
               </article>
             ))}
           </div>
