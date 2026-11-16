@@ -83,6 +83,14 @@ export interface components {
                 message: string;
             };
         };
+        CreateMemoInput: {
+            title: string;
+            content: string;
+        };
+        UpdateMemoInput: {
+            title?: string;
+            content?: string;
+        };
     };
     responses: {
         /** @description 輸入資料有誤 */
@@ -177,10 +185,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    title?: string;
-                    content?: string;
-                };
+                "application/json": components["schemas"]["UpdateMemoInput"];
             };
         };
         responses: {
@@ -226,10 +231,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    title: string;
-                    content: string;
-                };
+                "application/json": components["schemas"]["CreateMemoInput"];
             };
         };
         responses: {
@@ -239,10 +241,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Success"];
+                    "application/json": components["schemas"]["Memo"];
                 };
             };
-            404: components["responses"]["NotFound"];
+            400: components["responses"]["BadRequest"];
+            default: components["responses"]["InternalError"];
         };
     };
     healthCheck: {

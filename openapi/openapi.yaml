@@ -62,10 +62,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                title:   { type: string, maxLength: 100 }
-                content: { type: string }
+              $ref: "#/components/schemas/UpdateMemoInput"
       responses:
         "200":
           description: 成功
@@ -101,20 +98,18 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [title, content]
-              properties:
-                title:   { type: string, maxLength: 100 }
-                content: { type: string }
+              $ref: "#/components/schemas/CreateMemoInput"
       responses:
         "200":
           description: 成功
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Success"
-        "404":
-          $ref: "#/components/responses/NotFound"
+                $ref: "#/components/schemas/Memo"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        default:
+          $ref: "#/components/responses/InternalError"
   /health:
     get:
       summary: 健康檢查
@@ -173,3 +168,14 @@ components:
           properties:
             code:    { type: string, example: NOT_FOUND }
             message: { type: string }
+    CreateMemoInput:
+      type: object
+      required: [title, content]
+      properties:
+        title:   { type: string, minLength: 1, maxLength: 100 }
+        content: { type: string }
+    UpdateMemoInput:
+      type: object
+      properties:
+        title:   { type: string, minLength: 1, maxLength: 100 }
+        content: { type: string }

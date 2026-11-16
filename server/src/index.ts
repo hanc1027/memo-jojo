@@ -4,6 +4,7 @@ import { load } from "js-yaml";
 import { readFileSync } from "node:fs";
 import swaggerUi from "swagger-ui-express";
 import { pool } from "./db/pool.ts";
+import { createMemo } from "./memos/create.ts";
 
 
 const specPath = "../openapi/openapi.yaml";
@@ -21,12 +22,23 @@ app.use(OpenApiValidator.middleware({
 }));
 
 /**
- * 實際功能 API 路由
+ * 測試 API 連線用
  */
 
 app.get("/health", (_req, res) => {
   res.json({ success: true });
 });
+
+// 各功能API路由 - Start
+/**
+ * 新增memo
+ */
+app.post("/memos", async (req, res) => {
+  const memo = await createMemo(req.body);
+  res.json(memo);
+});
+
+// 各功能API路由 - End
 
 /**
  * 錯誤處理
@@ -54,10 +66,12 @@ const codeFromStatus = (status: number) => {
   return "BAD_REQUEST";
 }
 
+/**
+ * 測試資料庫連線
+ */
 const dbConnection = async () => {
   await pool.query("SELECT NOW(), UTC_TIMESTAMP();")
 }
-
 dbConnection().then(() => {
   console.log("Database connected.");
 }).catch((err) => {
