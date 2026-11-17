@@ -1,0 +1,7 @@
+package: api # 產生檔案的 Go 套件名稱
+output: internal/api/api.gen.go
+generate:
+  models: true # 產生 Memo、CreateMemoInput 等資料型別
+  chi-server: true # 產生與 chi 搭配的路由註冊程式
+  strict-server: true # 產生有型別的 handler 介面
+  embedded-spec: true # 把 yaml 嵌進程式，提供 GetSwagger()

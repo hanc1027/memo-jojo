@@ -1,0 +1,13 @@
+version: "3"
+
+tasks:
+  gen:
+    desc: 由 openapi.yaml 產生 Go 程式碼
+    cmds:
+      - go tool oapi-codegen -config oapi-codegen.yaml ../openapi/openapi.yaml
+
+  check:
+    desc: 檢查能否編譯與靜態檢查
+    cmds:
+      - go build ./...
+      - go vet ./...
