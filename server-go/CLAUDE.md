@@ -1,0 +1,53 @@
+# server-go 遷移筆記
+
+把 `server/`（Node + Express）改寫成 `server-go/`（Go + chi），供任何電腦開啟此專案時同步進度與決策。
+
+## 協作方式（重要）
+
+使用者要透過這次遷移學習 Go 的運作與架構，**不要直接把完整 code 寫出來**。正確做法：
+- 一步一步帶：先講概念、給函式簽名/骨架，讓使用者自己填邏輯
+- 使用者寫完/卡住再 review、解惑，才進下一步
+- 回覆排版依使用者全域偏好：優先用表格，流程用 Mermaid，避免大量條列
+
+## 技術選型
+
+| 項目 | 選擇 | 對應 Node 版 |
+|---|---|---|
+| Router | `go-chi/chi/v5` | Express |
+| API 程式碼產生 | `oapi-codegen`（`strict-server: true`, `chi-server: true`, `embedded-spec: true`），設定在 `oapi-codegen.yaml`，`task gen` 執行 | `express-openapi-validator` |
+| DB 存取 | **GORM**（`gorm.io/gorm` + `gorm.io/driver/mysql`） | `mysql2/promise` |
+| 環境變數 | 沿用 Node 版：`DB_HOST`、`DB_PORT`、`MYSQL_USER`、`MYSQL_PASSWORD`、`MYSQL_DATABASE` | `src/db/pool.ts` |
+
+## 目錄規劃
+
+```
+server-go/
+├── go.mod
+├── internal/
+│   ├── api/api.gen.go      # 已產生，oapi-codegen 輸出，含 StrictServerInterface
+│   ├── db/pool.go          # GORM 連線（待寫）
+│   ├── memos/memos.go      # CRUD，對應 src/memos/*.ts（待寫）
+│   └── server/server.go    # 實作 api.StrictServerInterface（待寫）
+└── cmd/
+    └── server/main.go      # 組裝 db + server + chi router + middleware，對應 src/index.ts（待寫）
+```
+
+附註：`cmd/server/` 多一層是 Go 社群慣例（Standard Go Project Layout），因為 `package main` 會被編成執行檔、檔名=資料夾名，每個可執行檔要有獨立資料夾；若確定只會有一個執行檔，也可以簡化成 `cmd/server-go/main.go` 或直接放根目錄。
+
+## 已實作/已確定的事
+
+- `internal/api/api.gen.go` 已由 `task gen` 產生，介面是 `StrictServerInterface`（型別化 request/response struct），之後要寫的是實作這個介面，再用 `api.NewStrictHandler` 包成 `api.ServerInterface` 給 chi 用
+- DB 改用 GORM，不是標準庫 `database/sql` 手刻 SQL
+- Memo 資料表欄位是 camelCase（`createdAt`/`updatedAt`），GORM 預設的 snake_case 轉換對不上，寫 model 時要用 tag 明確指定 column 名稱
+- MySQL driver 的 DSN 要加 `parseTime=True`，否則 DATETIME 欄位讀不進 `time.Time`
+
+## 進度
+
+| Step | 內容 | 狀態 |
+|---|---|---|
+| 1 | 規劃目錄結構、理解 package/可見性概念 | 討論完成 |
+| 2 | `internal/db/pool.go`：GORM 連線（DSN 組裝、連線池設定） | 討論中，尚未動手寫 |
+| 3 | `internal/memos/`：GORM model + CRUD | 未開始 |
+| 4 | `internal/server/`：實作 `StrictServerInterface` | 未開始 |
+| 5 | `cmd/server/main.go`：組裝啟動 | 未開始 |
+| 6 | 錯誤處理策略（對應 Node 版 `errorHandler`） | 未開始 |
