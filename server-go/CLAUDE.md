@@ -45,9 +45,16 @@ server-go/
 
 | Step | 內容 | 狀態 |
 |---|---|---|
-| 1 | 規劃目錄結構、理解 package/可見性概念 | 討論完成 |
-| 2 | `internal/db/pool.go`：GORM 連線（DSN 組裝、連線池設定） | 討論中，尚未動手寫 |
+| 1 | 規劃目錄結構、理解 package/可見性概念 | 完成 |
+| 2 | `internal/db/pool.go`：GORM 連線（`requireEnv`、`buildDSN`、`NewConnection`，含連線池設定） | 完成，`go build`/`go vet` 通過 |
+| 2.5 | （可選）啟動階段的連線 retry，應對 docker-compose DB container 還沒 ready 的情況 | 未開始，討論完但先擱置，之後再決定要不要做 |
 | 3 | `internal/memos/`：GORM model + CRUD | 未開始 |
 | 4 | `internal/server/`：實作 `StrictServerInterface` | 未開始 |
 | 5 | `cmd/server/main.go`：組裝啟動 | 未開始 |
 | 6 | 錯誤處理策略（對應 Node 版 `errorHandler`） | 未開始 |
+
+## 待其他 Agent 回答的問題
+
+> 這裡記錄使用者想問、但指定交給別的 agent 回答的問題，先不要在這個教學對話裡回答。
+
+- **多組 DB 帳密 / 權限分層**：現在 `internal/db/pool.go` 的 `NewConnection()` 只用同一組 `MYSQL_USER`/`MYSQL_PASSWORD` 建一個連線池。使用者問：如果之後 API 呼叫方有不同登入層級（例如一般使用者 vs 管理員），是否需要依使用者層級分開用不同的 DB 帳密去連線？該怎麼設計？
