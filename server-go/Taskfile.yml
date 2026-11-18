@@ -5,7 +5,14 @@ tasks:
     desc: 由 openapi.yaml 產生 Go 程式碼
     cmds:
       - go tool oapi-codegen -config oapi-codegen.yaml ../openapi/openapi.yaml
-
+  dev:
+    desc: 載入 .env 並啟動 server
+    cmds:
+      - go tool godotenv -f ../.env go run ./cmd/server
+  test:
+    desc: 載入 .env 並跑測試
+    cmds:
+      - go tool godotenv -f ../.env go test {{.CLI_ARGS | default "./..."}} -v
   check:
     desc: 檢查能否編譯與靜態檢查
     cmds:
