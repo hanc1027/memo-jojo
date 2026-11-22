@@ -29,10 +29,14 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
 
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy # 之後若要redis連不到時，要做降級至db連結的話，需要再修改
 
     healthcheck:
       test:
@@ -72,6 +76,18 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: memo-redis
+    restart: unless-stopped
+    # ports:
+      # - "6379:6379" # 應該還不用開，因為目前只有container內部api會使用
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 volumes:
   db-data:
