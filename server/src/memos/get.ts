@@ -1,11 +1,22 @@
-
+import { getCache } from "../cache/redis.ts";
 import { pool } from "../db/pool.ts";
 import { toMemo, type Memo, type MemoRow } from "./shared.ts";
 
 export async function getMemo(id: number): Promise<Memo> {
+  const key = `memo:${id}`;
+
+  // 新增：先查 Redis
+  const cached = await getCache<Memo>(key);
+  if (cached) {
+    console.log("cache HIT", key);
+    return cached;
+  }
+  console.log("cache MISS", key);
+
+  // 本來從DB取得資料的方式
   const [rows] = await pool.query<MemoRow[]>(
     "SELECT * FROM memos WHERE id = ?",
-    [id]
+    [id],
   );
 
   const row = rows[0];

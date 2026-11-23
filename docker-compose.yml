@@ -72,6 +72,7 @@ services:
       - db-data:/var/lib/mysql
       - ./db/init:/docker-entrypoint-initdb.d:ro
 
+    networks: [backend]
     healthcheck:
       test:
         - CMD-SHELL
