@@ -1,9 +1,9 @@
-import { getCache } from "../cache/redis.ts";
+import { getCache, genRedisKey, setCache } from "../cache/redis.ts";
 import { pool } from "../db/pool.ts";
 import { toMemo, type Memo, type MemoRow } from "./shared.ts";
 
 export async function getMemo(id: number): Promise<Memo> {
-  const key = `memo:${id}`;
+  const key = genRedisKey(id);
 
   // 新增：先查 Redis
   const cached = await getCache<Memo>(key);
@@ -24,5 +24,9 @@ export async function getMemo(id: number): Promise<Memo> {
     // 將錯誤導至404，以免前端收到500錯誤
     throw Object.assign(new Error("找不到該Memo"), { status: 404 });
   }
-  return toMemo(row);
+
+  // 在DB找到的值，放進Redis做快取
+  const dbResult = toMemo(row);
+  await setCache(key, dbResult);
+  return dbResult;
 }
