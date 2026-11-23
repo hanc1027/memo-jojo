@@ -1,53 +1,56 @@
 
 services:
-  # # Frontend - React + Nginx
-  # frontend:
-  #   build:
-  #     context: .
-  #     dockerfile: client/Dockerfile
-  #   container_name: memo-frontend
-  #   restart: unless-stopped
-  #   ports:
-  #     - "80:80"
-  #   depends_on:
-  #     api:
-  #       condition: service_healthy
+  # Frontend - React + Nginx
+  frontend:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: memo-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks: [frontend]         # 前端碰不到 redis 和 db
+    depends_on:
+      api:
+        condition: service_healthy
 
-  # # Backend - Express + TypeScript
-  # api:
-  #   build:
-  #     context: .
-  #     dockerfile: server/Dockerfile
-  #   container_name: memo-api
-  #   restart: unless-stopped
-  #   environment:
-  #     NODE_ENV: production
-  #     PORT: 3000
+  # Backend - Express + TypeScript
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: memo-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
 
-  #     DB_HOST: db
-  #     DB_PORT: 3306
-  #     MYSQL_DATABASE: ${MYSQL_DATABASE}
-  #     MYSQL_USER: ${MYSQL_USER}
-  #     MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-  #     REDIS_HOST: redis
-  #     REDIS_PORT: 6379
+      DB_HOST: db
+      DB_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
 
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy # 之後若要redis連不到時，要做降級至db連結的話，需要再修改
+      REDIS_HOST: redis          # 用 service 名稱當 hostname
+      REDIS_PORT: 6379           # 容器內部的 port，不是 6380
 
-  #   healthcheck:
-  #     test:
-  #       - CMD
-  #       - node
-  #       - -e
-  #       - "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 10s
+    networks: [backend, frontend]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy # 之後若要redis連不到時，要做降級至db連結的話，需要再修改
+
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # Database - MySQL 8.4
   db:
@@ -82,7 +85,8 @@ services:
     container_name: memo-redis
     restart: unless-stopped
     ports:
-      - "6380:6379" # 6380要給本機的RedisInsight連要用
+      - "127.0.0.1:6380:6379"   # 只給本機的 RedisInsight 用
+    networks: [backend]
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
@@ -91,3 +95,7 @@ services:
 
 volumes:
   db-data:
+
+networks:
+  backend:
+  frontend:

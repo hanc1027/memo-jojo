@@ -1,12 +1,5 @@
 import mysql from "mysql2/promise";
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`遺失必要的環境變數: ${name}`);
-  }
-  return value;
-}
+import { requireEnv } from "../env.ts"
 
 export const pool = mysql.createPool({
   host: requireEnv("DB_HOST"),

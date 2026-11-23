@@ -3,13 +3,13 @@ import * as OpenApiValidator from "express-openapi-validator";
 import { load } from "js-yaml";
 import { readFileSync } from "node:fs";
 import swaggerUi from "swagger-ui-express";
+import { redis } from "./cache/redis.ts";
 import { pool } from "./db/pool.ts";
 import { createMemo } from "./memos/create.ts";
-import { listMemos } from "./memos/list.ts";
 import { getMemo } from "./memos/get.ts";
-import { updateMemo } from "./memos/update.ts";
+import { listMemos } from "./memos/list.ts";
 import { removeMemo } from "./memos/remove.ts";
-
+import { updateMemo } from "./memos/update.ts";
 
 const specPath = "../openapi/openapi.yaml";
 const spec = load(readFileSync(specPath, "utf8")) as object;
@@ -20,10 +20,12 @@ app.use(express.json());
 /**
  * Swagger UI 解析渲染
  */
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec)); 
-app.use(OpenApiValidator.middleware({
-  apiSpec: specPath,
-}));
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec));
+app.use(
+  OpenApiValidator.middleware({
+    apiSpec: specPath,
+  }),
+);
 
 /**
  * 測試 API 連線用
@@ -100,24 +102,48 @@ const codeFromStatus = (status: number) => {
   if (status === 400) return "VALIDATION_ERROR";
   if (status === 404) return "NOT_FOUND";
   return "BAD_REQUEST";
-}
+};
 
 /**
  * 測試資料庫連線
  */
 const dbConnection = async () => {
-  await pool.query("SELECT NOW(), UTC_TIMESTAMP();")
-}
-dbConnection().then(() => {
-  console.log("Database connected.");
-}).catch((err) => {
-  if (err instanceof Error) {
-    console.error("Database connection test failed:", err.message);
-  } else {
-    console.error("Database connection test failed:", err);
-  }
-  process.exit(1);
-});
+  await pool.query("SELECT NOW(), UTC_TIMESTAMP();");
+};
+dbConnection()
+  .then(() => {
+    console.log("Database connected.");
+  })
+  .catch((err) => {
+    if (err instanceof Error) {
+      console.error("Database connection test failed:", err.message);
+    } else {
+      console.error("Database connection test failed:", err);
+    }
+    process.exit(1);
+  });
+
+//   1. await redis.connect()
+//   2. 連上後送一個 PING 確認（回傳值應該是什麼？可以 console.log 看看）
+const redisConnection = async () => {
+  await redis.connect();
+  const reply = await redis.ping();
+  console.info("Redis PING:", reply);
+};
+
+redisConnection()
+  .then(() => {
+    console.log("Redis connected.");
+  })
+  .catch((err) => {
+    console.error(
+      "Redis connection failed:",
+      err instanceof Error ? err.message : err,
+    );
+
+    // TODO: 這次先結束。之後降級直接查 DB
+    process.exit(1)
+  });
 
 /**
  * 啟動Server
