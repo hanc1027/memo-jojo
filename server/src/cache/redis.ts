@@ -42,3 +42,12 @@ export async function setCache(key: string, value: unknown, ttl = DEFAULT_TTL): 
     console.error("Redis setCache error:", err);
   }
 }
+
+export async function delCache(...keys: string[]): Promise<void> {
+  if (!redis.isReady) return;
+  try {
+    await redis.del(keys);
+  } catch (err) {
+    console.error("Redis delCache error:", err);
+  }
+}

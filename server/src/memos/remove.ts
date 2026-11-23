@@ -1,5 +1,6 @@
 import type { ResultSetHeader } from "mysql2/promise";
 import { pool } from "../db/pool.ts";
+import { delCache, genRedisKey } from "../cache/redis.ts";
 
 export async function removeMemo(id: number): Promise<void> {
   const [result] = await pool.query<ResultSetHeader>(
@@ -11,4 +12,7 @@ export async function removeMemo(id: number): Promise<void> {
   if (result.affectedRows === 0) {
     throw Object.assign(new Error("Memo not found"), { status: 404 });
   }
+
+  // DB 實際有刪除資料後，再將 redis 快取刪除，才不致於redis又存了DB已刪的舊資料
+  await delCache(genRedisKey(id));
 }
