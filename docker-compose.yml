@@ -83,6 +83,12 @@ services:
     image: redis:7-alpine
     container_name: memo-redis
     restart: unless-stopped
+    command:
+      - redis-server
+      - --maxmemory
+      - 100mb
+      - --maxmemory-policy
+      - allkeys-lru # 設定最久沒被讀取的資料，達最大上限時會優先被刪除 (Least Recently Used)
     ports:
       - "127.0.0.1:6380:6379"   # 只給本機的 RedisInsight 用
     networks: [backend]
