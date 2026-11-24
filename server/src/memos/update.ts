@@ -1,4 +1,4 @@
-import { delCache, genRedisKey } from "../cache/redis.ts";
+import { delCache, genRedisKey, MEMO_LIST_KEY } from "../cache/redis.ts";
 import { pool } from "../db/pool.ts";
 import type { components } from "../types/api.ts";
 import { getMemo } from "./get.ts";
@@ -29,7 +29,7 @@ export async function updateMemo(
       id,
     ]);
 
-    await delCache(genRedisKey(id));
+    await delCache(genRedisKey(id), MEMO_LIST_KEY);
   }
 
   return getMemo(id); // 找不到會丟 404，找到就回傳最新資料

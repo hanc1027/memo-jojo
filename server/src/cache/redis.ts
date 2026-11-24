@@ -4,6 +4,8 @@ import { requireEnv } from "../env.ts";
 const host = requireEnv("REDIS_HOST");
 const port = Number(requireEnv("REDIS_PORT"));
 
+export const MEMO_LIST_KEY = "memos:list"
+
 export const genRedisKey = (memoId: number) => {
   return `memo:${memoId}`;
 };
