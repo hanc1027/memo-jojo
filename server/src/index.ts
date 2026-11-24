@@ -140,15 +140,39 @@ redisConnection()
       "Redis connection failed:",
       err instanceof Error ? err.message : err,
     );
-
-    // TODO: 這次先結束。之後降級直接查 DB
-    process.exit(1)
   });
 
 /**
  * 啟動Server
  */
 const port = Number(process.env.PORT ?? 3000);
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`server listening on ${port}`);
 });
+
+let shuttingDown = false;
+
+const shutdown = async (signal: string) => {
+  if (shuttingDown) return;   // 防止重複執行
+  shuttingDown = true;
+  console.log(`${signal} received, shutting down...`);
+
+  // 8 秒還沒關完就強制結束，以免其它程式有未知錯後，而沒有關閉
+  setTimeout(() => { console.error("Shutdown timeout, forcing exit"); process.exit(1); }, 8000).unref();
+
+  // server.close() 是 callback 形式，這裡把它包成 Promise，等它關完
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+
+  // 關 Redis
+  if (redis.isOpen) {
+    await redis.close();
+  }
+  // 關 MySQL pool
+  await pool.end();
+
+  console.log('\n'); // 讓Log比較好看
+  process.exit(0);
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM")); // docker stop 會送這個
+process.on("SIGINT", () => shutdown("SIGINT")); // 本機按 Ctrl+C 會送這個

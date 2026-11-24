@@ -38,8 +38,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_healthy # 之後若要redis連不到時，要做降級至db連結的話，需要再修改
 
     healthcheck:
       test:
