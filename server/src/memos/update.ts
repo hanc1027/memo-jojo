@@ -1,3 +1,4 @@
+import { delCache, genRedisKey } from "../cache/redis.ts";
 import { pool } from "../db/pool.ts";
 import type { components } from "../types/api.ts";
 import { getMemo } from "./get.ts";
@@ -5,7 +6,10 @@ import type { Memo } from "./shared.ts";
 
 type UpdateMemoInput = components["schemas"]["UpdateMemoInput"];
 
-export async function updateMemo(id: number, input: UpdateMemoInput): Promise<Memo> {
+export async function updateMemo(
+  id: number,
+  input: UpdateMemoInput,
+): Promise<Memo> {
   const sets: string[] = [];
   const values: (string | number)[] = [];
 
@@ -20,8 +24,13 @@ export async function updateMemo(id: number, input: UpdateMemoInput): Promise<Me
   }
 
   if (sets.length > 0) {
-    await pool.query(`UPDATE memos SET ${sets.join(", ")} WHERE id = ?`, [...values, id]);
+    await pool.query(`UPDATE memos SET ${sets.join(", ")} WHERE id = ?`, [
+      ...values,
+      id,
+    ]);
+
+    await delCache(genRedisKey(id));
   }
 
-  return getMemo(id);   // 找不到會丟 404，找到就回傳最新資料
+  return getMemo(id); // 找不到會丟 404，找到就回傳最新資料
 }
