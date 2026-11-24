@@ -13,7 +13,7 @@ export async function createMemo(input: CreateMemoInput): Promise<Memo> {
   );
 
   // 有新的memo創建時，將整個list的快取刪除，下次DB取資料時，就會更新redis的快取
-  delCache(MEMO_LIST_KEY);
+  await delCache(MEMO_LIST_KEY);
 
   const [rows] = await pool.query<MemoRow[]>(
     "SELECT * FROM memos WHERE id = ?",
