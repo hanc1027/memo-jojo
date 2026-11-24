@@ -4,7 +4,7 @@ import { requireEnv } from "../env.ts";
 const host = requireEnv("REDIS_HOST");
 const port = Number(requireEnv("REDIS_PORT"));
 
-export const MEMO_LIST_KEY = "memos:list"
+export const MEMO_LIST_KEY = "memos:list";
 
 export const genRedisKey = (memoId: number) => {
   return `memo:${memoId}`;
@@ -36,6 +36,22 @@ export async function getCache<T>(key: string): Promise<T | null> {
   }
 }
 
+/**
+ * 在 ttl 上下加一點隨機偏移，避免大量 key 同時過期
+ * 例：ttl=300、ratio=0.2 → 回傳 240 ~ 360 之間的整數
+ */
+function withJitter(ttl: number, ratio = 0.2): number {
+  // 出最大偏移量
+  const range = ttl * ratio;
+
+  // -60 ~ +60 之間的隨機數
+  const offset = (Math.random() * 2 - 1) * range;
+
+  // 上偏移、轉成整數，且至少 1 秒
+  // 保險起見，如果有人傳 ttl=1 或 ratio=1，結果可能變成 0 或負數，而 Redis 不接受 0 秒的 TTL
+  return Math.max(1, Math.round(ttl + offset));
+}
+
 export async function setCache(
   key: string,
   value: unknown,
@@ -44,7 +60,7 @@ export async function setCache(
   if (!redis.isReady) return;
   try {
     await redis.set(key, JSON.stringify(value), {
-      expiration: { type: "EX", value: ttl },
+      expiration: { type: "EX", value: withJitter(ttl) },
     });
   } catch (err) {
     console.error("Redis setCache error:", err);
