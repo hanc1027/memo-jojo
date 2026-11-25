@@ -21,7 +21,11 @@ redis.on("error", (err) => {
   console.error("Redis Error:", err);
 });
 
-const DEFAULT_TTL = 300; // 秒
+const DEFAULT_TTL = 300; // 秒，一般快取秒數基準值
+
+// 用於防止「穿透」(惡意攻擊時，隨機查大量不存在的 id)
+export const NOT_FOUND = "__NOT_FOUND__";
+export const NOT_FOUND_TTL = 60; // 秒，比一般快取短
 
 export async function getCache<T>(key: string): Promise<T | null> {
   if (!redis.isReady) return null; // Redis 沒連上就當作沒命中，直接去查 DB
