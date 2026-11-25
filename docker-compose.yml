@@ -80,7 +80,7 @@ services:
       retries: 20
 
   redis:
-    image: redis:7-alpine
+    image: redis:8.12-alpine
     container_name: memo-redis
     restart: unless-stopped
     command:
