@@ -33,12 +33,13 @@ server-go/
 │   │   ├── repository.go    # Repository struct + NewRepository()
 │   │   ├── errors.go        # ErrNotFound 等共用 sentinel error
 │   │   ├── list.go          # List()（完成)
-│   │   ├── get.go           # Get()（進行中)
-│   │   ├── create.go        # Create()（未開始)
-│   │   ├── update.go        # Update()（未開始)
-│   │   ├── remove.go        # Delete()（未開始)
-│   │   └── memos_test.go    # 整合測試，接真實 DB
-│   └── server/server.go     # 實作 api.StrictServerInterface（待寫）
+│   │   ├── get.go           # Get()（完成)
+│   │   ├── create.go        # Create()（完成)
+│   │   ├── update.go        # Update()（完成)
+│   │   ├── remove.go        # Remove()（完成)
+│   │   └── list_test.go     # 整合測試，接真實 DB
+│   ├── server/server.go     # 實作 api.StrictServerInterface（待寫）
+│   └── cache/               # Redis 快取（之後加入，對應 server/src/cache/redis.ts）
 └── cmd/
     └── server/main.go       # 組裝 db + server + chi router + middleware，對應 src/index.ts（待寫）
 ```
@@ -66,6 +67,23 @@ Go 的 package 邊界是「資料夾」不是「檔案」，`internal/memos/` �
 
 - **DB 查詢逾時**：目前 `Repository` 方法沒有接 `context.Context`。之後接上 HTTP handler 時，考慮把 request 的 `context` 傳進 `r.db.WithContext(ctx)`，搭配 chi 的 `middleware.Timeout(...)`，避免連線池滿載時某個請求無限期卡住等連線，而是逾時後回傳 `context.DeadlineExceeded` 讓 client 提早拿到錯誤
 
+## Redis 快取設計（已在 Node 版實作並驗證，Go 版照搬）
+
+Node 版位置：`server/src/cache/redis.ts`、`server/src/memos/*.ts`。Go 版預計用 `github.com/redis/go-redis/v9`。
+
+| 項目 | 決定 |
+|---|---|
+| 模式 | Cache-aside：讀先查快取，MISS 查 DB 後寫回；寫入時刪快取 |
+| key 命名 | `memo:{id}`、`memos:list`、`lock:memo:{id}`（冒號分層） |
+| 快取內容 | 存 API 格式的 Memo（JSON），不存 DB row |
+| 寫入順序 | **先改 DB，再刪快取**；create 刪 `memos:list` + 新 id 的 key；update/remove 刪 `memo:{id}` + `memos:list` |
+| TTL | 300 秒 ±20% 隨機（防雪崩）；寫入一律帶 TTL |
+| 穿透 | 查無資料時快取 `"__NOT_FOUND__"` 標記，TTL 60 秒；讀到標記直接回 404 |
+| 擊穿 | `SET lock:... token NX PX 5000` 搶鎖；搶到後 double-check 快取再查 DB；沒搶到每 50ms 重試讀快取、最多 10 次，仍無則直接查 DB；`finally`(Go 用 `defer`) 以 Lua 比對 token 後才 DEL |
+| 降級 | Redis 未連線或出錯時，所有快取函式略過、只記 log，直接查 DB，不讓 request 失敗 |
+| Redis 設定 | `redis:8.12-alpine`、`--maxmemory 100mb`、`--maxmemory-policy allkeys-lru`、port 只綁 `127.0.0.1:6380`、不持久化 |
+| 第二階段（Redis 當資料庫） | 另開一台 redis-db：`noeviction` + AOF + volume；Hash 存 memo、Sorted Set 存列表、`INCR` 產生 id、`MULTI/EXEC`；在 Go 版實作 |
+
 ## 待其他 Agent 回答的問題
 
 > 這裡記錄使用者想問、但指定交給別的 agent 回答的問題，先不要在這個教學對話裡回答。
@@ -79,7 +97,11 @@ Go 的 package 邊界是「資料夾」不是「檔案」，`internal/memos/` �
 | 1 | 規劃目錄結構、理解 package/可見性概念 | 完成 |
 | 2 | `internal/db/pool.go`：GORM 連線（`requireEnv`、`buildDSN`、`NewConnection`，含連線池設定） | 完成，`go build`/`go vet` 通過 |
 | 2.5 | （可選）啟動階段的連線 retry，應對 docker-compose DB container 還沒 ready 的情況 | 未開始，討論完但先擱置，之後再決定要不要做 |
-| 3 | `internal/memos/`：GORM model + CRUD，依操作拆檔 | 進行中——`model.go`/`repository.go`/`errors.go`/`list.go` 完成，`get.go` 進行中，`create.go`/`update.go`/`remove.go` 未開始 |
-| 4 | `internal/server/`：實作 `StrictServerInterface` | 未開始 |
+| 3 | `internal/memos/`：GORM model + CRUD，依操作拆檔 | 完成 |
+| 4 | `internal/server/`：實作 `StrictServerInterface` | **下一步** |
 | 5 | `cmd/server/main.go`：組裝啟動 | 未開始 |
-| 6 | 錯誤處理策略（對應 Node 版 `errorHandler`，含 Repository 層的 log 統一收斂到這裡） | 未開始 |
+| 6 | 錯誤處理策略（對應 Node 版 `errorHandler`，含 Repository 層的 log 統一收斂到這裡）+ graceful shutdown（對應 Node 版 SIGTERM/SIGINT 處理）+ logger（slog） | 未開始 |
+| 7 | `internal/cache/`：Redis 快取，照上方「Redis 快取設計」 | 未開始 |
+| 8 | 第二階段：Redis 當資料庫 | 未開始 |
+
+附註：Redis 快取先在 Node 版（`server/`）學習實作完成（2026-11-25），之後的新功能都在 Go 版做。

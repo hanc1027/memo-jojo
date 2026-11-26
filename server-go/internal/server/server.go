@@ -1,1 +1,47 @@
 package server
+
+import (
+	"context"
+
+	"memo-server/internal/api"
+	"memo-server/internal/memos"
+)
+
+// Server 裡面放著 repo，之後每個 API 函式都透過 s.repo 存取 DB
+type Server struct {
+	repo *memos.Repository
+}
+
+// NewServer 建立 Server，之後在 main.go 呼叫
+func NewServer(repo *memos.Repository) *Server {
+	return &Server{repo: repo}
+}
+
+// toAPIMemo 把 DB 的 Memo 轉成 API 格式的 Memo（對應 Node 版的 toMemo）
+func toAPIMemo(m memos.Memo) api.Memo {
+	return api.Memo{
+		Id:        m.ID,
+		Title:     m.Title,
+		Content:   m.Content,
+		CreatedAt: m.CreatedAt,
+		UpdatedAt: m.UpdatedAt,
+	}
+}
+
+// 取得全部的 memos
+func (s *Server) GetMemos(ctx context.Context, request api.GetMemosRequestObject) (api.GetMemosResponseObject, error) {
+	// 呼叫 DB 那一層拿資料
+	list, err := s.repo.List()
+	if err != nil {
+		return nil, err
+	}
+
+	// 一筆一筆轉成 API 格式
+	result := make([]api.Memo, 0, len(list))
+	for _, m := range list {
+		result = append(result, toAPIMemo(m))
+	}
+
+	// 回傳 200
+	return api.GetMemos200JSONResponse(result), nil
+}
