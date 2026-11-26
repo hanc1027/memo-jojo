@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 
 	"memo-server/internal/api"
 	"memo-server/internal/memos"
@@ -44,4 +45,23 @@ func (s *Server) GetMemos(ctx context.Context, request api.GetMemosRequestObject
 
 	// 回傳 200
 	return api.GetMemos200JSONResponse(result), nil
+}
+
+// 取得單筆 memo
+func (s *Server) GetMemo(ctx context.Context, request api.GetMemoRequestObject) (api.GetMemoResponseObject, error) {
+	// 呼叫 DB 那一層拿資料（request.Id 就是網址裡的 id）
+	m, err := s.repo.Get(request.Id)
+
+	// 找不到 → 回 404
+	if errors.Is(err, memos.ErrNotFound) {
+		return api.GetMemo404JSONResponse{NotFoundJSONResponse: notFoundBody()}, nil
+	}
+
+	// 其他錯誤 → 往上丟
+	if err != nil {
+		return nil, err
+	}
+
+	// 回傳 200
+	return api.GetMemo200JSONResponse(toAPIMemo(*m)), nil
 }

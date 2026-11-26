@@ -1,5 +1,8 @@
 package memos
 
-import "errors"
+import (
+	"errors"
+)
 
-var ErrNotFound = errors.New("找不到該 memo")
+
+var ErrNotFound = errors.New( "找不到該Memo")
