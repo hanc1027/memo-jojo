@@ -65,3 +65,15 @@ func (s *Server) GetMemo(ctx context.Context, request api.GetMemoRequestObject) 
 	// 回傳 200
 	return api.GetMemo200JSONResponse(toAPIMemo(*m)), nil
 }
+
+// 新增 memo
+func (s *Server) CreateMemo(ctx context.Context, request api.CreateMemoRequestObject) (api.CreateMemoResponseObject, error) {
+	// 從 body 取出 title、content，交給 DB 那一層新增
+	m, err := s.repo.Create(request.Body.Title, request.Body.Content)
+	if err != nil {
+		return nil, err
+	}
+
+	// 回傳 200，內容是新增後的 memo
+	return api.CreateMemo200JSONResponse(toAPIMemo(*m)), nil
+}
