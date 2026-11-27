@@ -96,3 +96,23 @@ func (s *Server) UpdateMemo(ctx context.Context, request api.UpdateMemoRequestOb
 	// 回傳 200，內容是更新後的 memo
 	return api.UpdateMemo200JSONResponse(toAPIMemo(*m)), nil
 }
+
+// 刪除單筆 memo
+func (s *Server) DeleteMemo(ctx context.Context, request api.DeleteMemoRequestObject) (api.DeleteMemoResponseObject, error) {
+
+	// 網址的 id 欄位，交給 DB 那一層進行刪除
+	err := s.repo.Remove(request.Id)
+
+	// 找不到 → 回 404
+	if errors.Is(err, memos.ErrNotFound) {
+		return api.DeleteMemo404JSONResponse{NotFoundJSONResponse: notFoundBody()}, nil
+	}
+
+
+	// 其他錯誤 → 往上丟
+	if err != nil {
+		return nil, err
+	}
+
+	return api.DeleteMemo200JSONResponse{Success: true}, nil
+}
