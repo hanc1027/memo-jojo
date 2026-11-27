@@ -77,3 +77,22 @@ func (s *Server) CreateMemo(ctx context.Context, request api.CreateMemoRequestOb
 	// 回傳 200，內容是新增後的 memo
 	return api.CreateMemo200JSONResponse(toAPIMemo(*m)), nil
 }
+
+// 更新單筆 memo
+func (s *Server) UpdateMemo(ctx context.Context, request api.UpdateMemoRequestObject) (api.UpdateMemoResponseObject, error) {
+	// 網址的 id + body 的欄位，交給 DB 那一層更新
+	m, err := s.repo.Update(request.Id, request.Body.Title, request.Body.Content)
+
+	// 找不到 → 回 404
+	if errors.Is(err, memos.ErrNotFound) {
+		return api.UpdateMemo404JSONResponse{NotFoundJSONResponse: notFoundBody()}, nil
+	}
+
+	// 其他錯誤 → 往上丟
+	if err != nil {
+		return nil, err
+	}
+
+	// 回傳 200，內容是更新後的 memo
+	return api.UpdateMemo200JSONResponse(toAPIMemo(*m)), nil
+}
